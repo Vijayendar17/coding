@@ -1,6 +1,7 @@
 import User from "@/app/model/user";
 import connectToDatabase from "@/app/lib/dbConnect";
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers'; // <-- ADD THIS
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
@@ -8,7 +9,8 @@ export async function POST(request) {
   await connectToDatabase();
 
   try {
-    const { studentId, password } = await request.json();
+    const body = await request.json(); // <-- FIX 1
+    const { studentId, password } = body;
 
     if (!studentId || !password) {
       return NextResponse.json(
@@ -16,10 +18,11 @@ export async function POST(request) {
         { status: 400 }
       );
     }
+
     if (studentId.length != 10) {
       return NextResponse.json({
         success: false, message: 'bro id has 10 digits'
-      });
+      }, { status: 400 });
     }
 
     const user = await User.findOne({ studentId });
@@ -46,25 +49,24 @@ export async function POST(request) {
     user.sessions.push({ token: sessionToken, expiresAt });
     await user.save();
 
-    const response = NextResponse.json(
+    // <-- FIX 2: set cookies like this
+    cookies().set('session_id', sessionToken, {
+      expires: expiresAt,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+    });
+
+    cookies().set('studentId', studentId, {
+      expires: expiresAt,
+      path: '/',
+    });
+
+    return NextResponse.json(
       { success: true, message: "Login successful!" },
       { status: 200 }
     );
-
-    response.cookies.set('session_id', sessionToken, {
-      expires: expiresAt,
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', 
-      sameSite: 'lax', 
-      path: '/',
-    });
-
-    response.cookies.set('studentId', studentId, {
-      expires: expiresAt,
-      path: '/',
-    });
-
-    return response;
 
   } catch (error) {
     console.error('Login error:', error);
@@ -74,3 +76,4 @@ export async function POST(request) {
     );
   }
 }
+
