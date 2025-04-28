@@ -1,7 +1,7 @@
 import User from "@/app/model/user";
 import connectToDatabase from "@/app/lib/dbConnect";
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers'; // <-- ADD THIS
+import { cookies } from 'next/headers'; 
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
@@ -9,7 +9,7 @@ export async function POST(request) {
   await connectToDatabase();
 
   try {
-    const body = await request.json(); // <-- FIX 1
+    const body = await request.json(); 
     const { studentId, password } = body;
 
     if (!studentId || !password) {
@@ -49,7 +49,7 @@ export async function POST(request) {
     user.sessions.push({ token: sessionToken, expiresAt });
     await user.save();
 
-    // <-- FIX 2: set cookies like this
+
     cookies().set('session_id', sessionToken, {
       expires: expiresAt,
       httpOnly: true,
